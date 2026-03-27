@@ -1,0 +1,62 @@
+import json
+import secrets
+import string
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Dict, List
+
+from cryptography.exceptions import InvalidTag
+
+from cyber_toolkit.security.crypto_utils import decrypt_bytes, encrypt_bytes
+
+
+class PasswordVault:
+    def __init__(self, vault_path: Path):
+        self.vault_path = vault_path
+        self.vault_path.parent.mkdir(parents=True, exist_ok=True)
+
+    def exists(self) -> bool:
+        return self.vault_path.exists()
+
+    def initialize(self, master_password: str) -> None:
+        if self.exists():
+            raise FileExistsError("Vault already exists")
+        self._write_entries(master_password, [])
+
+    def list_entries(self, master_password: str) -> List[Dict[str, str]]:
+        return self._read_entries(master_password)
+
+    def add_entry(self, master_password: str, service: str, username: str, password: str, notes: str = "") -> None:
+        rows = self._read_entries(master_password)
+        rows.append(
+            {
+                "service": service,
+                "username": username,
+                "password": password,
+                "notes": notes,
+                "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            }
+        )
+        self._write_entries(master_password, rows)
+
+    def _read_entries(self, master_password: str) -> List[Dict[str, str]]:
+        if not self.exists():
+            raise FileNotFoundError("Vault does not exist")
+        encrypted = json.loads(self.vault_path.read_text(encoding="utf-8"))
+        try:
+            payload = decrypt_bytes(encrypted["payload"], master_password)
+        except InvalidTag as exc:
+            raise ValueError("Invalid master password") from exc
+        data = json.loads(payload.decode("utf-8"))
+        return data["entries"]
+
+    def _write_entries(self, master_password: str, entries: List[Dict[str, str]]) -> None:
+        data = {"entries": entries, "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+        payload = encrypt_bytes(json.dumps(data).encode("utf-8"), master_password)
+        wrapped = {"version": 1, "payload": payload}
+        self.vault_path.write_text(json.dumps(wrapped, indent=2), encoding="utf-8")
+
+    @staticmethod
+    def generate_password(length: int = 18) -> str:
+        alphabet = string.ascii_letters + string.digits + "!@#$%^&*()-_=+"
+        return "".join(secrets.choice(alphabet) for _ in range(length))
