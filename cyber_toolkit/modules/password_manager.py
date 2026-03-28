@@ -1,3 +1,4 @@
+import csv
 import json
 import secrets
 import string
@@ -37,6 +38,36 @@ class PasswordVault:
             return False
         self._write_entries(master_password, new_rows)
         return True
+
+    def export_entries(self, master_password: str, destination: str | Path, export_format: str | None = None) -> Path:
+        rows = self._read_entries(master_password)
+        target = Path(destination)
+        target.parent.mkdir(parents=True, exist_ok=True)
+
+        fmt = (export_format or target.suffix.lstrip(".") or "txt").lower()
+        if fmt not in {"txt", "csv", "json"}:
+            raise ValueError("Unsupported export format. Use txt, csv or json.")
+
+        with target.open("w", encoding="utf-8", newline="" if fmt == "csv" else None) as handle:
+            if fmt == "csv":
+                writer = csv.DictWriter(handle, fieldnames=["service", "username", "password", "notes", "created_at"])
+                writer.writeheader()
+                writer.writerows(rows)
+            elif fmt == "json":
+                json.dump({"version": 1, "entries": rows}, handle, indent=2)
+            else:
+                handle.write("=" * 60 + "\n")
+                handle.write("  CyberSecurity Toolkit - Password Vault Export\n")
+                handle.write("=" * 60 + "\n\n")
+                for index, row in enumerate(rows, 1):
+                    handle.write(f"[{index}] Service  : {row['service']}\n")
+                    handle.write(f"    Username : {row['username']}\n")
+                    handle.write(f"    Password : {row['password']}\n")
+                    handle.write(f"    Notes    : {row.get('notes', '')}\n")
+                    handle.write(f"    Created  : {row['created_at']}\n")
+                    handle.write("-" * 60 + "\n")
+
+        return target
 
     def add_entry(self, master_password: str, service: str, username: str, password: str, notes: str = "") -> None:
         rows = self._read_entries(master_password)

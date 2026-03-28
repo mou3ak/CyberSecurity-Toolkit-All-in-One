@@ -34,6 +34,7 @@ class ToolkitApp(tk.Tk):
         style.configure("TFrame", background="#0c0f10")
         style.configure("TLabel", background="#0c0f10", foreground="#c6f7d0")
         style.configure("Header.TLabel", font=("Consolas", 18, "bold"), foreground="#5eff9a")
+        style.configure("SubHeader.TLabel", font=("Consolas", 10, "bold"), foreground="#7df7ff")
         style.configure("TButton", background="#17322c", foreground="#c6f7d0")
         style.configure("Treeview", background="#111517", fieldbackground="#111517", foreground="#d7fbe1")
         style.configure("Treeview.Heading", background="#17322c", foreground="#8fffbb", font=("Consolas", 10, "bold"))
@@ -47,8 +48,12 @@ class ToolkitApp(tk.Tk):
         top_bar = tk.Frame(self, bg="#0c0f10")
         top_bar.pack(fill="x", padx=14, pady=(12, 0))
 
-        header = ttk.Label(top_bar, text="CyberSecurity Toolkit - All in One", style="Header.TLabel")
-        header.pack(side="left")
+        title_frame = ttk.Frame(top_bar)
+        title_frame.pack(side="left")
+
+        header = ttk.Label(title_frame, text="CyberSecurity Toolkit - All in One", style="Header.TLabel")
+        header.pack(anchor="w")
+        ttk.Label(title_frame, text="Defensive workspace by Sami Zi  👨‍💻", style="SubHeader.TLabel").pack(anchor="w", pady=(2, 0))
 
         # Author badge  ── right-aligned, neon cyan with hacker emoji
         author_frame = tk.Frame(top_bar, bg="#0d1f19", highlightbackground="#00ffcc",
@@ -68,7 +73,7 @@ class ToolkitApp(tk.Tk):
             text="Sami Zi",
             bg="#0d1f19",
             fg="#00ffcc",
-            font=("Consolas", 13, "bold"),
+            font=("Consolas", 14, "bold"),
         ).pack(side="left")
 
         tk.Label(
@@ -210,10 +215,8 @@ class ToolkitApp(tk.Tk):
         info = ttk.Label(
             frame,
             text=(
-                "🔒  Military-grade encryption  |  "
-                "AES-256-GCM  +  ChaCha20-Poly1305  |  "
-                "Argon2id KDF (64 MB memory)  |  "
-                "Compression + random padding"
+                "🔒  Professional file protection for items you explicitly choose  |  "
+                "AES-256-GCM + ChaCha20-Poly1305  |  Argon2id KDF (64 MB)  |  Authenticated binary format"
             ),
             font=("Consolas", 9),
             foreground="#5eff9a",
@@ -265,11 +268,13 @@ class ToolkitApp(tk.Tk):
             "  Layer 2  :  AES-256-GCM  (256-bit block cipher + AEAD)\n"
             "               Independent key, separate Argon2id derivation.\n\n"
             "  Extras   :  zlib compression (breaks statistical patterns)\n"
-            "               Random padding (0-255 bytes) before encryption\n"
+            "               Random padding (32-255 bytes) before encryption\n"
             "               Both layers carry cryptographic auth tags —\n"
-            "               any single bit change in the file is detected.\n\n"
-            "  Format   :  Binary .cstk  —  V2, no JSON leakage.\n"
-            "               Auto-decrypts legacy V1 (.cstk JSON) files too.\n"
+            "               any single bit change in the file is detected.\n"
+            "               The V3 header is authenticated as associated data.\n\n"
+            "  Format   :  Binary .cstk  —  V3, no JSON leakage.\n"
+            "               Stores original filename metadata for safer restore.\n"
+            "               Auto-decrypts legacy V1/V2 encrypted files too.\n"
         ))
         detail.configure(state="disabled")
 
@@ -451,34 +456,24 @@ class ToolkitApp(tk.Tk):
         file_path = filedialog.asksaveasfilename(
             title="Export passwords",
             defaultextension=".txt",
-            filetypes=[("Text file", "*.txt"), ("CSV file", "*.csv"), ("All files", "*.*")],
+            filetypes=[("Text file", "*.txt"), ("CSV file", "*.csv"), ("JSON file", "*.json"), ("All files", "*.*")],
             initialfile="passwords_export.txt",
         )
         if not file_path:
             return  # user cancelled
 
+        if not messagebox.askyesno(
+            "Vault Export",
+            "This export writes readable passwords to a local file.\nProtect that file carefully.\n\nContinue?",
+        ):
+            return
+
         try:
-            with open(file_path, "w", encoding="utf-8") as fh:
-                if file_path.endswith(".csv"):
-                    import csv as _csv
-                    writer = _csv.DictWriter(fh, fieldnames=["service", "username", "password", "notes", "created_at"])
-                    writer.writeheader()
-                    writer.writerows(rows)
-                else:
-                    fh.write("=" * 60 + "\n")
-                    fh.write("  CyberSecurity Toolkit – Password Vault Export\n")
-                    fh.write("=" * 60 + "\n\n")
-                    for i, row in enumerate(rows, 1):
-                        fh.write(f"[{i}] Service  : {row['service']}\n")
-                        fh.write(f"    Username : {row['username']}\n")
-                        fh.write(f"    Password : {row['password']}\n")
-                        fh.write(f"    Notes    : {row.get('notes', '')}\n")
-                        fh.write(f"    Created  : {row['created_at']}\n")
-                        fh.write("-" * 60 + "\n")
-            messagebox.showinfo("Vault", f"Passwords exported to:\n{file_path}")
+            target = self.vault.export_entries(master, file_path)
+            messagebox.showinfo("Vault", f"Passwords exported to:\n{target}")
             self._set_status(f"Vault exported ({len(rows)} entries)")
-        except OSError as exc:
-            messagebox.showerror("Vault", f"Could not write file:\n{exc}")
+        except (OSError, ValueError) as exc:
+            messagebox.showerror("Vault", f"Could not export file:\n{exc}")
 
     def select_file(self) -> None:
         path = filedialog.askopenfilename(title="Select file")
@@ -512,7 +507,8 @@ class ToolkitApp(tk.Tk):
                     f"File encrypted successfully!\n\nOutput: {target}\n\n"
                     "Algorithm : AES-256-GCM + ChaCha20-Poly1305\n"
                     "KDF       : Argon2id (64 MB, 4 iterations)\n"
-                    "Format    : Binary V2 (.cstk)")
+                    "Format    : Binary V3 (.cstk)\n"
+                    "Restore   : Preserves original filename metadata")
             except Exception as exc:
                 self.after(0, self._enc_progress_var.set, f"❌  Error: {exc}")
                 self.after(0, self._set_status, "Encryption failed")
