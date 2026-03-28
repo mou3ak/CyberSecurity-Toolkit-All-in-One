@@ -63,14 +63,6 @@ py "Toolkit-All-in-One.py"
 
 ---
 
-## 🧪 Run Tests
-
-```bash
-python -m unittest discover -s tests -v
-```
-
----
-
 ## 🔒 Security & Ethical Use
 
 This project is intended for:
