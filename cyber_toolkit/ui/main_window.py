@@ -211,17 +211,6 @@ class ToolkitApp(tk.Tk):
         self.file_path_var = tk.StringVar()
         self.file_key_var  = tk.StringVar()
 
-        # Security info banner
-        info = ttk.Label(
-            frame,
-            text=(
-                "🔒  Professional file protection for items you explicitly choose  |  "
-                "AES-256-GCM + ChaCha20-Poly1305  |  Argon2id KDF (64 MB)  |  Authenticated binary format"
-            ),
-            font=("Consolas", 9),
-            foreground="#5eff9a",
-        )
-        info.pack(anchor="w", padx=12, pady=(10, 2))
 
         row1 = ttk.Frame(frame)
         row1.pack(fill="x", padx=12, pady=(10, 6))
