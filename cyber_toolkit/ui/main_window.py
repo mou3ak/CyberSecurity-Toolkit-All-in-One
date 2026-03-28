@@ -37,14 +37,50 @@ class ToolkitApp(tk.Tk):
         style.configure("TButton", background="#17322c", foreground="#c6f7d0")
         style.configure("Treeview", background="#111517", fieldbackground="#111517", foreground="#d7fbe1")
         style.configure("Treeview.Heading", background="#17322c", foreground="#8fffbb", font=("Consolas", 10, "bold"))
+        style.configure("Author.TLabel",
+                        background="#0c0f10",
+                        foreground="#00ffcc",
+                        font=("Consolas", 13, "bold"))
 
     def _build_ui(self) -> None:
-        header = ttk.Label(self, text="CyberSecurity Toolkit - All in One", style="Header.TLabel")
-        header.pack(anchor="w", padx=14, pady=(12, 6))
+        # ── Top header bar ────────────────────────────────────────────────────
+        top_bar = tk.Frame(self, bg="#0c0f10")
+        top_bar.pack(fill="x", padx=14, pady=(12, 0))
 
+        header = ttk.Label(top_bar, text="CyberSecurity Toolkit - All in One", style="Header.TLabel")
+        header.pack(side="left")
+
+        # Author badge  ── right-aligned, neon cyan with hacker emoji
+        author_frame = tk.Frame(top_bar, bg="#0d1f19", highlightbackground="#00ffcc",
+                                highlightthickness=1)
+        author_frame.pack(side="right", padx=(0, 4))
+
+        tk.Label(
+            author_frame,
+            text="  👨‍💻  ",
+            bg="#0d1f19",
+            fg="#00ffcc",
+            font=("Segoe UI Emoji", 15),
+        ).pack(side="left")
+
+        tk.Label(
+            author_frame,
+            text="Sami Zi",
+            bg="#0d1f19",
+            fg="#00ffcc",
+            font=("Consolas", 13, "bold"),
+        ).pack(side="left")
+
+        tk.Label(
+            author_frame,
+            text="  ",          # small right padding
+            bg="#0d1f19",
+        ).pack(side="left")
+
+        # ── Status bar ───────────────────────────────────────────────────────
         self.status_var = tk.StringVar(value="Ready")
         status = ttk.Label(self, textvariable=self.status_var)
-        status.pack(anchor="w", padx=14, pady=(0, 8))
+        status.pack(anchor="w", padx=14, pady=(4, 8))
 
         notebook = ttk.Notebook(self)
         notebook.pack(fill="both", expand=True, padx=12, pady=8)
@@ -155,6 +191,8 @@ class ToolkitApp(tk.Tk):
         ttk.Button(btns, text="Generate Password", command=self.generate_password).pack(side="left", padx=4)
         ttk.Button(btns, text="Save Entry", command=self.save_entry).pack(side="left", padx=4)
         ttk.Button(btns, text="Load Entries", command=self.load_entries).pack(side="left", padx=4)
+        ttk.Button(btns, text="Delete Entry", command=self.delete_vault_entry).pack(side="left", padx=4)
+        ttk.Button(btns, text="Export to File", command=self.export_vault).pack(side="left", padx=4)
 
         self.vault_tree = ttk.Treeview(frame, columns=("service", "username", "password", "created_at"), show="headings", height=14)
         for col in ("service", "username", "password", "created_at"):
@@ -166,23 +204,74 @@ class ToolkitApp(tk.Tk):
         frame = self.file_tab
 
         self.file_path_var = tk.StringVar()
-        self.file_key_var = tk.StringVar()
+        self.file_key_var  = tk.StringVar()
+
+        # Security info banner
+        info = ttk.Label(
+            frame,
+            text=(
+                "🔒  Military-grade encryption  |  "
+                "AES-256-GCM  +  ChaCha20-Poly1305  |  "
+                "Argon2id KDF (64 MB memory)  |  "
+                "Compression + random padding"
+            ),
+            font=("Consolas", 9),
+            foreground="#5eff9a",
+        )
+        info.pack(anchor="w", padx=12, pady=(10, 2))
 
         row1 = ttk.Frame(frame)
-        row1.pack(fill="x", padx=12, pady=(14, 8))
+        row1.pack(fill="x", padx=12, pady=(10, 6))
         ttk.Label(row1, text="File:").pack(side="left")
         ttk.Entry(row1, textvariable=self.file_path_var).pack(side="left", fill="x", expand=True, padx=8)
         ttk.Button(row1, text="Browse", command=self.select_file).pack(side="left")
 
         row2 = ttk.Frame(frame)
-        row2.pack(fill="x", padx=12, pady=8)
-        ttk.Label(row2, text="Key / password:").pack(side="left")
-        ttk.Entry(row2, textvariable=self.file_key_var, show="*").pack(side="left", fill="x", expand=True, padx=8)
+        row2.pack(fill="x", padx=12, pady=6)
+        ttk.Label(row2, text="Password:").pack(side="left")
+        self._enc_pw_entry = ttk.Entry(row2, textvariable=self.file_key_var, show="*")
+        self._enc_pw_entry.pack(side="left", fill="x", expand=True, padx=8)
+        self._enc_show_pw = tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            row2, text="Show", variable=self._enc_show_pw,
+            command=self._toggle_enc_pw,
+        ).pack(side="left")
 
         row3 = ttk.Frame(frame)
-        row3.pack(fill="x", padx=12, pady=8)
-        ttk.Button(row3, text="Encrypt", command=self.encrypt_file).pack(side="left", padx=4)
-        ttk.Button(row3, text="Decrypt", command=self.decrypt_file).pack(side="left", padx=4)
+        row3.pack(fill="x", padx=12, pady=6)
+        self._btn_encrypt = ttk.Button(row3, text="🔐  Encrypt File", command=self.encrypt_file)
+        self._btn_encrypt.pack(side="left", padx=4)
+        self._btn_decrypt = ttk.Button(row3, text="🔓  Decrypt File", command=self.decrypt_file)
+        self._btn_decrypt.pack(side="left", padx=4)
+
+        self._enc_progress_var = tk.StringVar(value="")
+        ttk.Label(frame, textvariable=self._enc_progress_var, font=("Consolas", 10), foreground="#ffcc55").pack(
+            anchor="w", padx=12, pady=(4, 0)
+        )
+
+        # Security detail panel
+        detail = tk.Text(
+            frame, height=10, bg="#0a1510", fg="#5eff9a",
+            font=("Consolas", 9), relief="flat", state="normal",
+        )
+        detail.pack(fill="both", expand=True, padx=12, pady=(10, 12))
+        detail.insert("1.0", (
+            "═══════════════════ Encryption Details ═══════════════════\n\n"
+            "  KDF      :  Argon2id  —  memory=64 MB, iterations=4, threads=2\n"
+            "               Resistant to GPU, ASIC, and side-channel attacks.\n"
+            "               Each brute-force attempt costs ~64 MB RAM + ~1-2 s.\n\n"
+            "  Layer 1  :  ChaCha20-Poly1305  (256-bit stream cipher + AEAD)\n"
+            "               Independent key, separate Argon2id derivation.\n\n"
+            "  Layer 2  :  AES-256-GCM  (256-bit block cipher + AEAD)\n"
+            "               Independent key, separate Argon2id derivation.\n\n"
+            "  Extras   :  zlib compression (breaks statistical patterns)\n"
+            "               Random padding (0-255 bytes) before encryption\n"
+            "               Both layers carry cryptographic auth tags —\n"
+            "               any single bit change in the file is detected.\n\n"
+            "  Format   :  Binary .cstk  —  V2, no JSON leakage.\n"
+            "               Auto-decrypts legacy V1 (.cstk JSON) files too.\n"
+        ))
+        detail.configure(state="disabled")
 
     def _build_simulator(self) -> None:
         frame = self.sim_tab
@@ -319,36 +408,144 @@ class ToolkitApp(tk.Tk):
         self._set_status(f"Loaded {len(rows)} vault entries")
         self.refresh_dashboard()
 
+    def delete_vault_entry(self) -> None:
+        selected = self.vault_tree.selection()
+        if not selected:
+            messagebox.showwarning("Vault", "Select an entry in the table first.")
+            return
+        master = self.vault_master_var.get().strip()
+        if not master:
+            messagebox.showerror("Vault", "Enter master password first.")
+            return
+        values = self.vault_tree.item(selected[0], "values")
+        service, username, _password, created_at = values
+        if not messagebox.askyesno(
+            "Vault",
+            f"Delete the entry for '{service}' ({username})?\nThis action cannot be undone.",
+        ):
+            return
+        try:
+            deleted = self.vault.delete_entry(master, service, username, created_at)
+            if deleted:
+                self._set_status(f"Entry '{service}' deleted")
+                self.load_entries()
+            else:
+                messagebox.showerror("Vault", "Entry not found – please reload entries first.")
+        except ValueError as exc:
+            messagebox.showerror("Vault", str(exc))
+
+    def export_vault(self) -> None:
+        master = self.vault_master_var.get().strip()
+        if not master:
+            messagebox.showerror("Vault", "Enter master password first.")
+            return
+        try:
+            rows = self.vault.list_entries(master)
+        except (FileNotFoundError, ValueError) as exc:
+            messagebox.showerror("Vault", str(exc))
+            return
+        if not rows:
+            messagebox.showinfo("Vault", "No entries to export.")
+            return
+
+        file_path = filedialog.asksaveasfilename(
+            title="Export passwords",
+            defaultextension=".txt",
+            filetypes=[("Text file", "*.txt"), ("CSV file", "*.csv"), ("All files", "*.*")],
+            initialfile="passwords_export.txt",
+        )
+        if not file_path:
+            return  # user cancelled
+
+        try:
+            with open(file_path, "w", encoding="utf-8") as fh:
+                if file_path.endswith(".csv"):
+                    import csv as _csv
+                    writer = _csv.DictWriter(fh, fieldnames=["service", "username", "password", "notes", "created_at"])
+                    writer.writeheader()
+                    writer.writerows(rows)
+                else:
+                    fh.write("=" * 60 + "\n")
+                    fh.write("  CyberSecurity Toolkit – Password Vault Export\n")
+                    fh.write("=" * 60 + "\n\n")
+                    for i, row in enumerate(rows, 1):
+                        fh.write(f"[{i}] Service  : {row['service']}\n")
+                        fh.write(f"    Username : {row['username']}\n")
+                        fh.write(f"    Password : {row['password']}\n")
+                        fh.write(f"    Notes    : {row.get('notes', '')}\n")
+                        fh.write(f"    Created  : {row['created_at']}\n")
+                        fh.write("-" * 60 + "\n")
+            messagebox.showinfo("Vault", f"Passwords exported to:\n{file_path}")
+            self._set_status(f"Vault exported ({len(rows)} entries)")
+        except OSError as exc:
+            messagebox.showerror("Vault", f"Could not write file:\n{exc}")
+
     def select_file(self) -> None:
         path = filedialog.askopenfilename(title="Select file")
         if path:
             self.file_path_var.set(path)
 
+    def _toggle_enc_pw(self) -> None:
+        self._enc_pw_entry.configure(show="" if self._enc_show_pw.get() else "*")
+
+    def _set_enc_busy(self, busy: bool) -> None:
+        state = "disabled" if busy else "normal"
+        self._btn_encrypt.configure(state=state)
+        self._btn_decrypt.configure(state=state)
+
     def encrypt_file(self) -> None:
         path = self.file_path_var.get().strip()
-        key = self.file_key_var.get().strip()
+        key  = self.file_key_var.get().strip()
         if not path or not key:
-            messagebox.showerror("Encryptor", "Choose file and key.")
+            messagebox.showerror("Encryptor", "Choose a file and enter a password.")
             return
-        try:
-            target = self.file_cipher.encrypt_file(path, key)
-            messagebox.showinfo("Encryptor", f"Encrypted file created: {target}")
-            self._set_status("File encrypted")
-        except Exception as exc:  # pragma: no cover - GUI level fallback
-            messagebox.showerror("Encryptor", str(exc))
+
+        def task() -> None:
+            self.after(0, self._set_enc_busy, True)
+            self.after(0, self._enc_progress_var.set, "⏳  Encrypting…  (Argon2id key derivation in progress, this is intentionally slow)")
+            self.after(0, self._set_status, "Encrypting file…")
+            try:
+                target = self.file_cipher.encrypt_file(path, key)
+                self.after(0, self._enc_progress_var.set, f"✅  Encrypted → {target.name}")
+                self.after(0, self._set_status, "File encrypted successfully")
+                self.after(0, messagebox.showinfo, "Encryptor",
+                    f"File encrypted successfully!\n\nOutput: {target}\n\n"
+                    "Algorithm : AES-256-GCM + ChaCha20-Poly1305\n"
+                    "KDF       : Argon2id (64 MB, 4 iterations)\n"
+                    "Format    : Binary V2 (.cstk)")
+            except Exception as exc:
+                self.after(0, self._enc_progress_var.set, f"❌  Error: {exc}")
+                self.after(0, self._set_status, "Encryption failed")
+                self.after(0, messagebox.showerror, "Encryptor", str(exc))
+            finally:
+                self.after(0, self._set_enc_busy, False)
+
+        threading.Thread(target=task, daemon=True).start()
 
     def decrypt_file(self) -> None:
         path = self.file_path_var.get().strip()
-        key = self.file_key_var.get().strip()
+        key  = self.file_key_var.get().strip()
         if not path or not key:
-            messagebox.showerror("Encryptor", "Choose encrypted file and key.")
+            messagebox.showerror("Encryptor", "Choose an encrypted file and enter the password.")
             return
-        try:
-            target = self.file_cipher.decrypt_file(path, key)
-            messagebox.showinfo("Encryptor", f"Decrypted file created: {target}")
-            self._set_status("File decrypted")
-        except Exception as exc:  # pragma: no cover - GUI level fallback
-            messagebox.showerror("Encryptor", str(exc))
+
+        def task() -> None:
+            self.after(0, self._set_enc_busy, True)
+            self.after(0, self._enc_progress_var.set, "⏳  Decrypting…  (Argon2id key derivation in progress…)")
+            self.after(0, self._set_status, "Decrypting file…")
+            try:
+                target = self.file_cipher.decrypt_file(path, key)
+                self.after(0, self._enc_progress_var.set, f"✅  Decrypted → {target.name}")
+                self.after(0, self._set_status, "File decrypted successfully")
+                self.after(0, messagebox.showinfo, "Encryptor", f"File decrypted successfully!\n\nOutput: {target}")
+            except Exception as exc:
+                self.after(0, self._enc_progress_var.set, f"❌  {exc}")
+                self.after(0, self._set_status, "Decryption failed")
+                self.after(0, messagebox.showerror, "Encryptor", str(exc))
+            finally:
+                self.after(0, self._set_enc_busy, False)
+
+        threading.Thread(target=task, daemon=True).start()
 
     def run_simulation(self) -> None:
         try:

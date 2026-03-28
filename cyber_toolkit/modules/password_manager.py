@@ -26,6 +26,18 @@ class PasswordVault:
     def list_entries(self, master_password: str) -> List[Dict[str, str]]:
         return self._read_entries(master_password)
 
+    def delete_entry(self, master_password: str, service: str, username: str, created_at: str) -> bool:
+        """Remove the entry that matches service + username + created_at.  Returns True if found and deleted."""
+        rows = self._read_entries(master_password)
+        new_rows = [
+            r for r in rows
+            if not (r["service"] == service and r["username"] == username and r["created_at"] == created_at)
+        ]
+        if len(new_rows) == len(rows):
+            return False
+        self._write_entries(master_password, new_rows)
+        return True
+
     def add_entry(self, master_password: str, service: str, username: str, password: str, notes: str = "") -> None:
         rows = self._read_entries(master_password)
         rows.append(
