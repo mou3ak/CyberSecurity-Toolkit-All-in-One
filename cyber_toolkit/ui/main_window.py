@@ -252,31 +252,6 @@ class ToolkitApp(tk.Tk):
             anchor="w", padx=12, pady=(4, 0)
         )
 
-        # Security detail panel
-        detail = tk.Text(
-            frame, height=10, bg="#0a1510", fg="#5eff9a",
-            font=("Consolas", 9), relief="flat", state="normal",
-        )
-        detail.pack(fill="both", expand=True, padx=12, pady=(10, 12))
-        detail.insert("1.0", (
-            "═══════════════════ Encryption Details ═══════════════════\n\n"
-            "  KDF      :  Argon2id  —  memory=64 MB, iterations=4, threads=2\n"
-            "               Resistant to GPU, ASIC, and side-channel attacks.\n"
-            "               Each brute-force attempt costs ~64 MB RAM + ~1-2 s.\n\n"
-            "  Layer 1  :  ChaCha20-Poly1305  (256-bit stream cipher + AEAD)\n"
-            "               Independent key, separate Argon2id derivation.\n\n"
-            "  Layer 2  :  AES-256-GCM  (256-bit block cipher + AEAD)\n"
-            "               Independent key, separate Argon2id derivation.\n\n"
-            "  Extras   :  zlib compression (breaks statistical patterns)\n"
-            "               Random padding (32-255 bytes) before encryption\n"
-            "               Both layers carry cryptographic auth tags —\n"
-            "               any single bit change in the file is detected.\n"
-            "               The V3 header is authenticated as associated data.\n\n"
-            "  Format   :  Binary .cstk  —  V3, no JSON leakage.\n"
-            "               Stores original filename metadata for safer restore.\n"
-            "               Auto-decrypts legacy V1/V2 encrypted files too.\n"
-        ))
-        detail.configure(state="disabled")
 
     def _build_simulator(self) -> None:
         frame = self.sim_tab
