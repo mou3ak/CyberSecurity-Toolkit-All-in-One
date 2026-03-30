@@ -20,12 +20,11 @@ I developed this desktop cybersecurity toolkit as a personal project to streamli
 - Export data to `.txt`, `.csv`, or `.json` *(Warning: Exported files are **not encrypted**; please store them securely.)*
 
 ### 🔒 File Encryptor / Decryptor
-- Encrypt and decrypt selected files safely using AES-256 GCM
-- Uses Argon2id (memory-hard key derivation, 64 MB default)
-- Compressed `.cstk` file format
-- Securely stores original filename for safe restoration
-- Prevents accidental file overwriting
-- Supports drag & drop and file browsing
+- Securely encrypt and decrypt your files with strong protection  
+- Saves original filenames to ensure easy restoration  
+- Prevents accidental overwriting of files  
+- Supports drag & drop and file browsing for ease of use  
+- Designed to keep your data safe and private
 
 ---
 
