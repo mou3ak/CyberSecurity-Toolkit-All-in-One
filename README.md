@@ -73,23 +73,12 @@ Please always use this toolkit responsibly and ethically.
 
 ---
 
-## ⭐ Future Improvements
-
-- Cross-platform support (Linux / macOS)  
-- GUI improvements with enhanced themes  
-- Real-time alert system  
-- Encrypted cloud sync for password vault  
-
----
-
 ## 🙋 About the Author
 
 **Sami Zi**  
 Cybersecurity Enthusiast | Software Developer  
 
 I created this project to combine learning and practical cybersecurity tools in one place. I’m continuously working on improvements, so stay tuned for updates!
-
-Feel free to connect with me on [LinkedIn](https://www.linkedin.com/in/tu-perfil) or email me at tuemail@example.com
 
 ---
 
