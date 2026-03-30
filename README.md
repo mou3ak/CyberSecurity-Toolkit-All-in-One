@@ -1,55 +1,39 @@
-# 🔐 CyberSecurity Toolkit - All in One
+# CyberSecurity Toolkit - All in One 🔐
 
-This toolkit was created by **Sami Zi 👨‍💻**
+Hi, I'm Sami Zi 👨‍💻.
 
-A powerful and easy-to-use **desktop cybersecurity toolkit** built with Python, designed for learning, testing, and improving personal security skills.
+I developed this desktop cybersecurity toolkit as a personal project to streamline various security tasks and deepen my understanding of defensive techniques. My goal is to provide a reliable and user-friendly app both for beginners wanting to learn and for seasoned users seeking a handy toolkit.
 
 ---
 
 ## 🚀 Features
 
 ### 🌐 Network Tools
+- Local device discovery (IP / MAC)
+- Live connection monitor with basic risk indicators
+- *(Note: The Wi-Fi scanner feature has been removed and is no longer supported.)*
 
-* Wi-Fi scanner for nearby networks
-* Local device discovery (IP / MAC)
-* Live connection monitor with basic risk indicators
+### 🗝 Password Vault
+- Secure vault protected with a master password
+- Generate strong passwords
+- Save, manage, and delete credentials
+- Export data to `.txt`, `.csv`, or `.json` *(Warning: Exported files are **not encrypted**; please store them securely.)*
 
-### 🔑 Password Vault
-
-* Secure vault protected with a master password
-* Generate strong passwords
-* Save and manage credentials
-* Delete stored entries
-* Export data to `.txt`, `.csv`, or `.json`
-
-> ⚠️ **Warning:** Exported files are not encrypted. Store them securely.
-
-### 🔐 File Encryptor / Decryptor
-
-* Encrypt and decrypt selected files safely
-* Uses **Argon2id** (memory-hard key derivation, 64 MB default)
-* Compressed `.cstk` file format
-* Stores original filename securely for safe restoration
-* Prevents accidental file overwriting
-
-### 🧠 Ethical Password Simulator
-
-* No real attacks are performed ❌
-* Estimates:
-
-  * Total combinations
-  * Entropy
-  * Expected cracking time
-  * 24-hour success probability
-  * Password strength rating
+### 🔒 File Encryptor / Decryptor
+- Encrypt and decrypt selected files safely using AES-256 GCM
+- Uses Argon2id (memory-hard key derivation, 64 MB default)
+- Compressed `.cstk` file format
+- Securely stores original filename for safe restoration
+- Prevents accidental file overwriting
+- Supports drag & drop and file browsing
 
 ---
 
 ## ⚙️ Requirements
 
-* Python **3.10+**
-* Windows (recommended)
-* Wi-Fi scanning uses `netsh` → Windows-specific features
+- Python 3.10+
+- Windows (recommended)  
+  *(Note: Wi-Fi scanning uses `netsh`, which is Windows-specific)*
 
 ---
 
@@ -57,49 +41,56 @@ A powerful and easy-to-use **desktop cybersecurity toolkit** built with Python, 
 
 ```bash
 git clone "https://github.com/mou3ak/CyberSecurity-Toolkit-All-in-One.git"
-cd .\CyberSecurity-Toolkit-All-in-One\
+cd CyberSecurity-Toolkit-All-in-One
 py "Toolkit-All-in-One.py"
 ```
 
 ---
 
-## 🔒 Security & Ethical Use
+## 🔐 Security & Ethical Use
 
 This project is intended for:
 
-* Defensive cybersecurity education
-* Personal security practice
-* Lab environments
-* Authorized testing only
+- Defensive cybersecurity education  
+- Personal security practice  
+- Lab environments  
+- Authorized testing only  
 
-🚫 **Not intended for:**
+**Not intended for:**
 
-* Unauthorized access
-* Intrusive activities
-* Malicious use
+- Unauthorized access  
+- Intrusive activities  
+- Malicious use  
+
+Please always use this toolkit responsibly and ethically.
 
 ---
 
 ## 📝 Notes
 
-* Some network features depend on your system permissions and OS configuration
-* Always use this tool responsibly and ethically
+- Some network features depend on your system permissions and OS configuration.  
+- Exported password vault files are not encrypted; handle them with care.
 
 ---
 
 ## ⭐ Future Improvements
 
-* Cross-platform support (Linux / macOS)
-* GUI improvements
-* Real-time alerts system
-* Encrypted cloud sync for vault
+- Cross-platform support (Linux / macOS)  
+- GUI improvements with enhanced themes  
+- Real-time alert system  
+- Encrypted cloud sync for password vault  
 
 ---
 
-## 👨‍💻 Author
+## 🙋 About the Author
 
-**Sami Zi**
+**Sami Zi**  
+Cybersecurity Enthusiast | Software Developer  
+
+I created this project to combine learning and practical cybersecurity tools in one place. I’m continuously working on improvements, so stay tuned for updates!
+
+Feel free to connect with me on [LinkedIn](https://www.linkedin.com/in/tu-perfil) or email me at tuemail@example.com
 
 ---
 
-⭐ If you like this project, consider giving it a star on GitHub!
+⭐ *If you find this project useful, please give it a star on GitHub!*
