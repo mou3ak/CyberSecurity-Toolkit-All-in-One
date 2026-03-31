@@ -1,47 +1,106 @@
-# CyberSecurity Toolkit - All in One 🔐
+# ⚡ CyberSecurity Toolkit — All in One 🔐
 
-Hi, I'm Sami Zi 👨‍💻.
+> **A professional, dark-themed defensive security workspace built with Python + Tkinter.**
+> Developed by **Sami Zi** 👨‍💻 · © 2026
 
-I developed this desktop cybersecurity toolkit as a personal project to streamline various security tasks and deepen my understanding of defensive techniques. My goal is to provide a reliable and user-friendly app both for beginners wanting to learn and for seasoned users seeking a handy toolkit.
+---
+
+## 👋 About This Project
+
+Hi, I'm Sami Zi.
+
+I developed this desktop cybersecurity toolkit as a personal project to combine multiple defensive security tools into one clean and user-friendly application.
+
+My goal is to:
+
+* simplify common cybersecurity tasks
+* improve my practical skills
+* provide a useful tool for both beginners and advanced users
 
 ---
 
 ## 🚀 Features
 
+### 📊 Dashboard
+
+* Live metric cards (connections · devices · vault entries)
+* One-click refresh
+
+---
+
 ### 🌐 Network Tools
-- Local device discovery (IP / MAC)
-- Live connection monitor with basic risk indicators
-- *(Note: The Wi-Fi scanner feature has been removed and is no longer supported.)*
+
+* Advanced /24 subnet scanning
+* Shows IP, MAC, hostname, manufacturer
+* Detects open ports *(nmap if available)*
+* ARP / ping fallback scanning
+* Filter, sort, export results (CSV)
+
+---
+
+### 🔌 Connections Monitor
+
+* Live list of active network connections
+* Displays process names
+* Basic risk indicators
+
+---
 
 ### 🗝 Password Vault
-- Secure vault protected with a master password
-- Generate strong passwords
-- Save, manage, and delete credentials
-- Export data to `.txt`, `.csv`, or `.json` *(Warning: Exported files are **not encrypted**; please store them securely.)*
+
+* AES-256-GCM encrypted vault
+* Secure storage with master password
+* Password generator
+* Add, delete, manage entries
+* Export: `.txt`, `.csv`, `.json`
+* Import: `.json`, `.csv`
+
+⚠️ Exported files are **not encrypted** — store them securely.
+
+---
 
 ### 🔒 File Encryptor / Decryptor
-- Securely encrypt and decrypt your files with strong protection  
-- Saves original filenames to ensure easy restoration  
-- Prevents accidental overwriting of files  
-- Supports drag & drop and file browsing for ease of use  
-- Designed to keep your data safe and private
+
+* AES-256-GCM encryption
+* PBKDF2-HMAC-SHA256 (600,000 iterations)
+* Drag & drop support
+* Show / hide password
+* Prevents file overwrite
+* Backward compatibility with legacy encrypted files
 
 ---
 
 ## ⚙️ Requirements
 
-- Python 3.10+
-- Windows (recommended)  
-  *(Note: Wi-Fi scanning uses `netsh`, which is Windows-specific)*
+* Python 3.11+
+* `cryptography` ≥ 42
+* `psutil` ≥ 5.9
+* `argon2-cffi` ≥ 23.1 *(legacy support)*
+* `python-nmap` ≥ 0.7.1 *(optional)*
+* `tkinterdnd2` ≥ 0.3.0 *(optional)*
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+> Optional: Install **nmap** → https://nmap.org/download.html
 
 ---
 
-## 📦 Installation & Run
+## ⚡ Quick Start
 
 ```bash
-git clone "https://github.com/mou3ak/CyberSecurity-Toolkit-All-in-One.git"
-cd CyberSecurity-Toolkit-All-in-One
-py "Toolkit-All-in-One.py"
+python Toolkit-All-in-One.py
+```
+
+---
+
+## 🧪 Running Tests
+
+```bash
+python -m pytest tests/ -v
 ```
 
 ---
@@ -50,35 +109,36 @@ py "Toolkit-All-in-One.py"
 
 This project is intended for:
 
-- Defensive cybersecurity education  
-- Personal security practice  
-- Lab environments  
-- Authorized testing only  
+* Defensive cybersecurity learning
+* Personal use
+* Lab environments
+* Authorized testing
 
 **Not intended for:**
 
-- Unauthorized access  
-- Intrusive activities  
-- Malicious use  
+* Unauthorized access
+* Malicious activity
 
-Please always use this toolkit responsibly and ethically.
+Use responsibly.
 
 ---
 
 ## 📝 Notes
 
-- Some network features depend on your system permissions and OS configuration.  
-- Exported password vault files are not encrypted; handle them with care.
+* Some features depend on system permissions
+* Network scanning may vary depending on OS
+* Exported vault files are not encrypted
 
 ---
 
-## 🙋 About the Author
+## 🙋 Author
 
-**Sami Zi**  
-Cybersecurity Enthusiast | Software Developer  
+**Sami Zi**
+Cybersecurity Enthusiast | Developer
 
-I created this project to combine learning and practical cybersecurity tools in one place. I’m continuously working on improvements, so stay tuned for updates!
+I built this project to learn, improve, and create something practical.
+More updates coming soon 🚀
 
 ---
 
-⭐ *If you find this project useful, please give it a star on GitHub!*
+⭐ If you like this project, consider giving it a star on GitHub!
