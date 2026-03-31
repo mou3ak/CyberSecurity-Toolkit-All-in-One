@@ -1,4 +1,8 @@
-"""User-controlled file encryption with metadata-aware restore and legacy support."""
+"""User-controlled file encryption with metadata-aware restore.
+
+New files are encrypted with V4 (PBKDF2-HMAC-SHA256 + AES-256-GCM).
+Legacy V2/V3 (Argon2id) files are automatically detected and decrypted.
+"""
 
 import json
 import os
@@ -7,10 +11,16 @@ import uuid
 from pathlib import Path
 
 from cyber_toolkit.config import FILE_MAGIC
-from cyber_toolkit.security.crypto_utils import decrypt_bytes  # legacy V1
-from cyber_toolkit.security.file_engine import LEGACY_MAGIC as V2_MAGIC, MAGIC as V3_MAGIC, FileEncryptionEngine
+from cyber_toolkit.security.crypto_utils import decrypt_bytes                       # legacy V1
+from cyber_toolkit.security.file_engine import (
+    LEGACY_MAGIC as V2_MAGIC,
+    MAGIC        as V3_MAGIC,
+    V4_MAGIC,
+    FileEncryptionEngineV4,
+)
 
-_engine = FileEncryptionEngine()
+# Active engine – V4 (PBKDF2-HMAC-SHA256).  Decryption auto-falls back to V2/V3.
+_engine = FileEncryptionEngineV4()
 MANIFEST_MAGIC = b"FM01"
 
 
@@ -20,7 +30,7 @@ class FileCipher:
         if not source.exists() or not source.is_file():
             raise FileNotFoundError("Source file was not found")
 
-        plaintext = self._pack_payload(source)
+        plaintext  = self._pack_payload(source)
         ciphertext = _engine.encrypt(plaintext, password)
 
         target = Path(output_path) if output_path else self._build_encrypted_target(source)
@@ -33,8 +43,8 @@ class FileCipher:
             raise FileNotFoundError("Encrypted file was not found")
         raw = source.read_bytes()
 
-        # Auto-detect format
-        if raw.startswith(V3_MAGIC) or raw.startswith(V2_MAGIC):
+        # Auto-detect format: V4 / V3 / V2 all handled by the V4 engine
+        if raw.startswith(V4_MAGIC) or raw.startswith(V3_MAGIC) or raw.startswith(V2_MAGIC):
             plaintext = _engine.decrypt(raw, password)
         else:
             # Legacy V1: JSON-encoded encrypted payload
@@ -49,11 +59,7 @@ class FileCipher:
 
         metadata, file_bytes = self._unpack_payload(plaintext)
 
-        if output_path:
-            target = Path(output_path)
-        else:
-            target = self._build_decrypted_target(source, metadata)
-
+        target = Path(output_path) if output_path else self._build_decrypted_target(source, metadata)
         self._write_bytes_atomic(target, file_bytes)
         return target
 
@@ -75,22 +81,17 @@ class FileCipher:
         body = plaintext[len(FILE_MAGIC):]
         if not body.startswith(MANIFEST_MAGIC):
             return {}, body
-
         if len(body) < len(MANIFEST_MAGIC) + 4:
             raise ValueError("Encrypted payload metadata is truncated.")
-
         offset = len(MANIFEST_MAGIC)
-        metadata_len = struct.unpack(">I", body[offset:offset + 4])[0]
-        offset += 4
+        metadata_len = struct.unpack(">I", body[offset:offset + 4])[0]; offset += 4
         metadata_raw = body[offset:offset + metadata_len]
         if len(metadata_raw) != metadata_len:
             raise ValueError("Encrypted payload metadata is incomplete.")
-
         try:
             metadata = json.loads(metadata_raw.decode("utf-8"))
         except json.JSONDecodeError as exc:
             raise ValueError("Encrypted payload metadata is invalid.") from exc
-
         return metadata, body[offset + metadata_len:]
 
     def _build_encrypted_target(self, source: Path) -> Path:
@@ -100,7 +101,6 @@ class FileCipher:
         original_name = metadata.get("original_name") if metadata else None
         if original_name:
             return self._make_unique_path(source.with_name(original_name), label="decrypted")
-
         if source.suffix == ".cstk":
             return self._make_unique_path(source.with_suffix(""), label="decrypted")
         return self._make_unique_path(source.with_name(source.name + ".dec"), label="decrypted")
@@ -109,24 +109,17 @@ class FileCipher:
     def _make_unique_path(target: Path, label: str) -> Path:
         if not target.exists():
             return target
-
-        if target.suffix:
-            base_name = f"{target.stem}.{label}{target.suffix}"
-        else:
-            base_name = f"{target.name}.{label}"
-
+        base_name = f"{target.stem}.{label}{target.suffix}" if target.suffix else f"{target.name}.{label}"
         candidate = target.with_name(base_name)
         if not candidate.exists():
             return candidate
-
         for index in range(1, 1000):
-            if candidate.suffix:
-                numbered = candidate.with_name(f"{candidate.stem}-{index}{candidate.suffix}")
-            else:
-                numbered = candidate.with_name(f"{candidate.name}-{index}")
+            numbered = (
+                candidate.with_name(f"{candidate.stem}-{index}{candidate.suffix}")
+                if candidate.suffix else candidate.with_name(f"{candidate.name}-{index}")
+            )
             if not numbered.exists():
                 return numbered
-
         raise FileExistsError("Could not find a free output filename.")
 
     @staticmethod

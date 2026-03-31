@@ -8,7 +8,10 @@ import zlib
 from argon2.low_level import Type, hash_secret_raw
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM, ChaCha20Poly1305
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives import hashes as _hashes
 
+# ── V2 / V3  (Argon2id, legacy) ───────────────────────────────────────────────
 LEGACY_MAGIC = b"\x89CSTK\x02\r\n"
 MAGIC = b"\x89CSTK\x03\r\n"
 LEGACY_VERSION = 0x02
@@ -23,9 +26,16 @@ DEFAULT_MEMORY_COST = 65536
 DEFAULT_PARALLELISM = 2
 KEY_LEN = 32
 
+# ── V4  (PBKDF2-HMAC-SHA256 + AES-256-GCM) ────────────────────────────────────
+V4_MAGIC = b"\x89CSTK\x04\r\n"
+V4_VERSION = 0x04
+V4_SALT_LEN = 16   # 16-byte random salt
+V4_IV_LEN = 12     # 12-byte random IV  (GCM nonce)
+PBKDF2_ITERATIONS = 600_000
+
 
 class FileEncryptionEngine:
-    """Two-pass authenticated encryption for user-selected files."""
+    """Two-pass authenticated encryption for user-selected files (V2/V3, Argon2id)."""
 
     def __init__(
         self,
@@ -199,3 +209,67 @@ class FileEncryptionEngine:
         )
 
 
+# ── V4 engine — PBKDF2-HMAC-SHA256 + AES-256-GCM ─────────────────────────────
+
+class FileEncryptionEngineV4:
+    """
+    V4 file encryption engine.
+
+    Encryption format (binary, concatenated):
+        MAGIC   (8 bytes)  — b"\\x89CSTK\\x04\\r\\n"
+        VERSION (1 byte)   — 0x04
+        SALT    (16 bytes) — random, used for PBKDF2 key derivation
+        IV      (12 bytes) — random nonce for AES-256-GCM
+        CIPHERTEXT+TAG     — AES-256-GCM output (plaintext length + 16-byte tag)
+
+    Key derivation: PBKDF2-HMAC-SHA256, 600 000 iterations, 32-byte output.
+
+    Legacy V2/V3 files (Argon2id) are automatically detected and decrypted via
+    the ``FileEncryptionEngine`` fallback.
+    """
+
+    def encrypt(self, plaintext: bytes, password: str) -> bytes:
+        """Encrypt *plaintext* and return the complete V4 binary blob."""
+        if not password:
+            raise ValueError("Password cannot be empty.")
+        salt = os.urandom(V4_SALT_LEN)
+        iv   = os.urandom(V4_IV_LEN)
+        key  = self._derive_key(password, salt)
+        ciphertext_and_tag = AESGCM(key).encrypt(iv, plaintext, None)
+        return V4_MAGIC + bytes([V4_VERSION]) + salt + iv + ciphertext_and_tag
+
+    def decrypt(self, data: bytes, password: str) -> bytes:
+        """Decrypt *data*.  Handles V4 natively; delegates V2/V3 to legacy engine."""
+        if data.startswith(V4_MAGIC):
+            return self._decrypt_v4(data, password)
+        # Fallback: V3 / V2 Argon2id format
+        return FileEncryptionEngine().decrypt(data, password)
+
+    # ── internals ──────────────────────────────────────────────────────────────
+
+    def _decrypt_v4(self, data: bytes, password: str) -> bytes:
+        min_len = len(V4_MAGIC) + 1 + V4_SALT_LEN + V4_IV_LEN + 16  # +16 GCM tag
+        if len(data) < min_len:
+            raise ValueError("File too short to be a valid V4 .cstk encrypted file.")
+        off  = len(V4_MAGIC) + 1          # skip MAGIC + VERSION byte
+        salt = data[off: off + V4_SALT_LEN]; off += V4_SALT_LEN
+        iv   = data[off: off + V4_IV_LEN];   off += V4_IV_LEN
+        ciphertext_and_tag = data[off:]
+        key  = self._derive_key(password, salt)
+        try:
+            return AESGCM(key).decrypt(iv, ciphertext_and_tag, None)
+        except InvalidTag as exc:
+            raise ValueError(
+                "Authentication failed — wrong password or file is corrupted."
+            ) from exc
+
+    @staticmethod
+    def _derive_key(password: str, salt: bytes) -> bytes:
+        """Return a 256-bit key via PBKDF2-HMAC-SHA256 (600 000 iterations)."""
+        kdf = PBKDF2HMAC(
+            algorithm=_hashes.SHA256(),
+            length=32,
+            salt=salt,
+            iterations=PBKDF2_ITERATIONS,
+        )
+        return kdf.derive(password.encode("utf-8"))
