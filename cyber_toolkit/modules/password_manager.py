@@ -69,6 +69,78 @@ class PasswordVault:
 
         return target
 
+    def import_file(self, master_password: str, file_path) -> int:
+        """Import entries from a JSON or CSV file.
+
+        Supported formats
+        -----------------
+        JSON: ``{"entries": [...]}`` or a bare list ``[...]``.
+              Each item must have at least *service*, *username*, *password*.
+        CSV:  Must have header row with at least the three fields above.
+
+        Returns the number of entries successfully imported.
+        Raises ``FileNotFoundError``, ``ValueError`` on bad input.
+        """
+        path = Path(file_path)
+        if not path.exists():
+            raise FileNotFoundError(f"Import file not found: {path}")
+
+        suffix = path.suffix.lower()
+        raw_entries = []
+
+        if suffix == ".json":
+            with path.open("r", encoding="utf-8") as fh:
+                data = json.load(fh)
+            if isinstance(data, dict) and "entries" in data:
+                raw_entries = data["entries"]
+            elif isinstance(data, list):
+                raw_entries = data
+            else:
+                raise ValueError(
+                    "Unrecognised JSON format. "
+                    "Expected {\"entries\": [...]} or a list of entry objects."
+                )
+        elif suffix == ".csv":
+            with path.open("r", encoding="utf-8", newline="") as fh:
+                reader = csv.DictReader(fh)
+                raw_entries = [dict(row) for row in reader]
+        else:
+            raise ValueError(
+                f"Unsupported file format '{suffix}'. Use .json or .csv"
+            )
+
+        # Validate and normalise
+        valid: list = []
+        for entry in raw_entries:
+            svc  = str(entry.get("service",  "")).strip()
+            usr  = str(entry.get("username", "")).strip()
+            pwd  = str(entry.get("password", "")).strip()
+            if not svc or not usr or not pwd:
+                continue          # skip incomplete rows silently
+            valid.append({
+                "service":    svc,
+                "username":   usr,
+                "password":   pwd,
+                "notes":      str(entry.get("notes", "")),
+                "created_at": entry.get("created_at")
+                              or datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            })
+
+        if not valid:
+            raise ValueError(
+                "No valid entries found. Each entry must have service, username and password."
+            )
+
+        # Merge into vault (auto-create if missing)
+        try:
+            existing = self._read_entries(master_password)
+        except FileNotFoundError:
+            self.initialize(master_password)
+            existing = []
+
+        self._write_entries(master_password, existing + valid)
+        return len(valid)
+
     def add_entry(self, master_password: str, service: str, username: str, password: str, notes: str = "") -> None:
         rows = self._read_entries(master_password)
         rows.append(

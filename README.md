@@ -1,105 +1,108 @@
-# 🔐 CyberSecurity Toolkit - All in One
+# ⚡ CyberSecurity Toolkit — All in One
 
-This toolkit was created by **Sami Zi 👨‍💻**
-
-A powerful and easy-to-use **desktop cybersecurity toolkit** built with Python, designed for learning, testing, and improving personal security skills.
-
----
-
-## 🚀 Features
-
-### 🌐 Network Tools
-
-* Wi-Fi scanner for nearby networks
-* Local device discovery (IP / MAC)
-* Live connection monitor with basic risk indicators
-
-### 🔑 Password Vault
-
-* Secure vault protected with a master password
-* Generate strong passwords
-* Save and manage credentials
-* Delete stored entries
-* Export data to `.txt`, `.csv`, or `.json`
-
-> ⚠️ **Warning:** Exported files are not encrypted. Store them securely.
-
-### 🔐 File Encryptor / Decryptor
-
-* Encrypt and decrypt selected files safely
-* Uses **Argon2id** (memory-hard key derivation, 64 MB default)
-* Compressed `.cstk` file format
-* Stores original filename securely for safe restoration
-* Prevents accidental file overwriting
-
-### 🧠 Ethical Password Simulator
-
-* No real attacks are performed ❌
-* Estimates:
-
-  * Total combinations
-  * Entropy
-  * Expected cracking time
-  * 24-hour success probability
-  * Password strength rating
+> **A professional, dark-themed defensive security workspace built with Python + Tkinter.**
+> Made by **Sami Zi** · © 2026
 
 ---
 
-## ⚙️ Requirements
+## Features
 
-* Python **3.10+**
-* Windows (recommended)
-* Wi-Fi scanning uses `netsh` → Windows-specific features
+| Module | Description |
+|---|---|
+| **Dashboard** | Live metric cards (connections · devices · vault entries) with one-click refresh |
+| **Local Scanner** | Advanced /24 subnet scan — IP, MAC, hostname, manufacturer, open ports. nmap-powered when available; ARP/ping fallback. Filter, sort, export CSV. |
+| **Connections** | Live list of active network connections with process names and risk flags |
+| **Password Vault** | AES-256-GCM encrypted vault. Save, generate, delete, export (TXT/CSV/JSON) and **import** (JSON/CSV) password entries |
+| **File Encryptor** | AES-256-GCM + PBKDF2-HMAC-SHA256 (600 000 iter). Drag-and-drop file selector. Show/hide password. Full backward-compatibility with legacy files. |
 
 ---
 
-## 📦 Installation & Run
+## Requirements
+
+- Python 3.11+
+- `cryptography` ≥ 42
+- `psutil` ≥ 5.9
+- `argon2-cffi` ≥ 23.1 *(legacy file decryption)*
+- `python-nmap` ≥ 0.7.1 *(optional — enhanced scanning)*
+- `tkinterdnd2` ≥ 0.3.0 *(optional — drag & drop)*
+
+Install all at once:
 
 ```bash
-git clone "https://github.com/mou3ak/CyberSecurity-Toolkit-All-in-One.git"
-cd .\CyberSecurity-Toolkit-All-in-One\
-py "Toolkit-All-in-One.py"
+pip install -r requirements.txt
+```
+
+> **nmap binary** (optional): For advanced port scanning, install [nmap](https://nmap.org/download.html) and make sure it is in your `PATH`.
+
+---
+
+## Quick Start
+
+```bash
+python Toolkit-All-in-One.py
 ```
 
 ---
 
-## 🔒 Security & Ethical Use
+## File Encryption Format (V4)
 
-This project is intended for:
+| Field | Size | Description |
+|---|---|---|
+| Magic | 8 bytes | `\x89CSTK\x04\r\n` |
+| Version | 1 byte | `0x04` |
+| Salt | 16 bytes | Random — used for PBKDF2 key derivation |
+| IV | 12 bytes | Random nonce — AES-256-GCM |
+| Ciphertext + Tag | variable | AES-256-GCM output |
 
-* Defensive cybersecurity education
-* Personal security practice
-* Lab environments
-* Authorized testing only
-
-🚫 **Not intended for:**
-
-* Unauthorized access
-* Intrusive activities
-* Malicious use
+**KDF:** PBKDF2-HMAC-SHA256, 600 000 iterations, 32-byte output.
+**Legacy files** (V2 / V3, Argon2id) are automatically detected and decrypted.
 
 ---
 
-## 📝 Notes
+## Password Vault Import Format
 
-* Some network features depend on your system permissions and OS configuration
-* Always use this tool responsibly and ethically
+**JSON** (list or object with `entries` key):
+```json
+[
+  { "service": "github", "username": "user", "password": "secret" }
+]
+```
 
----
-
-## ⭐ Future Improvements
-
-* Cross-platform support (Linux / macOS)
-* GUI improvements
-* Real-time alerts system
-* Encrypted cloud sync for vault
-
----
-
-## 👨‍💻 Author
-
-**Sami Zi**
+**CSV** (requires `service`, `username`, `password` columns):
+```csv
+service,username,password,notes
+github,user,secret,
+```
 
 ---
 
-⭐ If you like this project, consider giving it a star on GitHub!
+## Running Tests
+
+```bash
+python -m pytest tests/ -v
+```
+
+---
+
+## Project Structure
+
+```
+Toolkit-All-in-One.py          Entry point
+cyber_toolkit/
+  config.py                    App constants & paths
+  modules/
+    scanner.py                 Network scanner (nmap / ARP)
+    monitor.py                 Connection monitor
+    password_manager.py        Encrypted password vault
+    file_crypto.py             File encrypt / decrypt
+  security/
+    crypto_utils.py            AES-256-GCM primitives (vault KDF)
+    file_engine.py             File encryption engines (V4 + legacy V2/V3)
+  ui/
+    main_window.py             Tkinter application window
+tests/                         Unit tests
+```
+
+---
+
+*© 2026 Sami Zi — For defensive and educational use only.*
