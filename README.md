@@ -68,7 +68,7 @@ My goals are to:
 
 ## ⚡ Quick Start
 
-Simply download and run the executable: 
+Simply download and run the executable **as administrator**: 
 
 - Toolkit-All-in-One.exe
 
