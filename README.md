@@ -71,7 +71,7 @@ My goals are to:
 Simply download and run the executable: 
 
 - Toolkit-All-in-One.exe
-- 
+
 ---
 
 ## 🔐 Security & Ethical Use
